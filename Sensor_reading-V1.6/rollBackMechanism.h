@@ -364,7 +364,7 @@ void sensorDataWrite(int sensorData, unsigned long sensorTimeStamp){
  */
  
 int checkpointAvaliable(int rbValue){
-  int timestampMargin = 100000;
+  int timestampMargin = 1000;
   for (int i = 0; i < SAVE_SIZE; i++){
     /*
     if (sensorBackup[i] == rbValue){
