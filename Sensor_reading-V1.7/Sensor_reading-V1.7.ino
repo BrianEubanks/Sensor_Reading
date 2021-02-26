@@ -176,6 +176,9 @@ void handleComms(char c){
   if (c=='`'){
     showBackups();
   } 
+  if (c=='~'){
+    showTimestampBackups();
+  } 
   // ES request rollback
   if (c=='$'){
     //rbFlag=true;

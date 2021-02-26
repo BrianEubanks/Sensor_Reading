@@ -27,11 +27,11 @@ void sensorDataWrite(int sensorData, unsigned long sensorTimeStamp);
 
 // Determines if a checkpoint with the value 'rbValue' is avaliable.
 // Returns the SAVE INDEX of the value if it is avaliable. -1 otherwise
-int checkpointAvaliable(int rbValue);
+int checkpointAvaliable(long rbValue);
 
 // Negotiate Rollback
 // negotiates with the visualizer 
-void negotiateRollback(int rbValue);
+void negotiateRollback(long rbValue);
 
 
 
@@ -104,7 +104,8 @@ volatile byte *address31 = 0x1F;
 
 //SAVE SLOTS
 //SAVE_SIZE determines number of backup slots
-const int SAVE_SIZE=10;
+const int SAVE_SIZE=5;
+int saveCount = 0;
 
 //struct to save GPRegs
 struct GPRegBackup{
@@ -220,7 +221,11 @@ void checkpoint() {
   else{
     backupIndex++;
   }
-  
+
+ 
+  if (saveCount < SAVE_SIZE){
+     saveCount++;
+  }
 
   
   Serial.println("!");
@@ -354,7 +359,7 @@ void sensorDataWrite(int sensorData, unsigned long sensorTimeStamp){
     dataString += String(sensorTimeStamp);
     Serial.println(dataString);
     
-  }
+  } 
   sei();
 }
 
@@ -364,24 +369,40 @@ void sensorDataWrite(int sensorData, unsigned long sensorTimeStamp){
  * 
  */
  
-int checkpointAvaliable(int rbValue){
-  int timestampMargin = 1000;
-  for (int i = 0; i < SAVE_SIZE; i++){
+int checkpointAvaliable(long rbValue){
+
+  // 1 second margin of error
+  // +/- 0.5 seconds.
+  long timestampMargin = 500;
+  long timestampMax = 0;
+  long timestampMin = 0;
+  
+  for (int i = 0; i < saveCount; i++){
+
+
+    //Equality check only
     /*
-    if (sensorBackup[i] == rbValue){
+    if (timerBackup[i] == rbValue){
       return i;
+    }
     */
-    //Check if rbValue timestamp is in 
-    if (timerBackup[i]+timestampMargin > rbValue && timerBackup[i]-timestampMargin < rbValue);
-      //return i;
-      return -1;
+
+    timestampMax = timerBackup[i] + timestampMargin;
+    timestampMin = timerBackup[i] - timestampMargin;
+    
+    
+    //Check if rbValue timestamp is within timerstampMargin of error.
+    
+    if (rbValue <= timestampMax && rbValue >= timestampMin)
+      return i;
+
   }
   return -1;
 }
 
 
 //Negotiate Visualizer Starts
-void negotiateRollback(int rbValue){
+void negotiateRollback(long rbValue){
 //Negotiation
     sei();
     boolean rbAgree = false;
@@ -436,7 +457,7 @@ void negotiateRollback(int rbValue){
           }
         }
         suggestIndex++;
-        suggestIndex %= SAVE_SIZE;
+        suggestIndex %= saveCount;
       }
     }
     //memInterface_Restore(suggestIndex);
@@ -445,15 +466,16 @@ void negotiateRollback(int rbValue){
 }
 
 //Negotiate - Arduino starts
-void negotiateRollbackES(int rbValue){
+void negotiateRollbackES(long rbValue){
 //Negotiation
     sei();
     boolean rbAgree = false;
     bool response = false;
     int suggestIndex = 0;
+    Serial.println('?');
     while (!rbAgree){
         //Suggest  rollback value
-        Serial.println('?');
+        //Serial.println('?');
         //Serial.println(sensorBackup[suggestIndex]); //Use Timer instead. Sends timestamp
         Serial.println(timerBackup[suggestIndex]);
         rbValue=0;
@@ -497,7 +519,7 @@ void negotiateRollbackES(int rbValue){
           }
         }
         suggestIndex++;
-        suggestIndex %= SAVE_SIZE;
+        suggestIndex %= saveCount;
     }
     //memInterface_Restore(suggestIndex);
     //Do Recovery
@@ -523,7 +545,7 @@ void showBackups(){
   Serial.println("Backups");
   Serial.print("Most Recent Backup: ");
   Serial.println(backupIndex);
-  for(int i = 0; i < SAVE_SIZE; i++){
+  for(int i = 0; i < saveCount; i++){
     Serial.print("Backup:");
     Serial.println(i);
     Serial.print("Sensor Value: ");
@@ -562,5 +584,18 @@ void showBackups(){
     Serial.println(regSaves[i].adr1D);
     Serial.println(regSaves[i].adr1E);
     Serial.println(regSaves[i].adr1F);
+  }
+}
+
+void showTimestampBackups(){
+  Serial.println("TimeStamps Backups");
+  Serial.print("Most Recent Backup: ");
+  Serial.println(backupIndex);
+  for(int i = 0; i < saveCount; i++){
+    Serial.print("Backup:");
+    Serial.println(i);
+    Serial.print("Timer Value: ");
+    Serial.println(timerBackup[i]);
+
   }
 }
