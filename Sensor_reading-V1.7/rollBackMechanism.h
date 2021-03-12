@@ -2,6 +2,19 @@
 // Checkpoint and Rollback Mechanism
 
 
+//Fault Injection Macros
+
+#define INSERT_FAULT
+
+//#define ZERO_FAULT
+#define ONES_FAULT
+//#define FLIP_FAULT
+
+#define ADDR_FAULT *address2
+
+#define FLIP_VALUE 0x01
+
+
 
 //Funciton Definitions
 
@@ -331,10 +344,18 @@ void malicious(void){
   //Your code should stand it. 
 
   
-  //R1 to Random
-   badReg =  random(1, 255);
-  *address1= badReg;
 
+  #ifdef ZERO_FAULT
+  ADDR_FAULT = 0x00;
+  #endif
+
+  #ifdef ONES_FAULT
+  ADDR_FAULT = 0xFF;
+  #endif
+
+  #ifdef FLIP_FAULT
+  ADDR_FAULT ^= FLIP_VALUE;
+  #endif
 
 
 
@@ -535,7 +556,9 @@ void insertFault(){
     chkptFlag=false;
     rbFlag = false;
   }
+  #ifdef INSERT_FAULT
   malicious();
+  #endif
   //begin recovery
   //negotiateRollbackES(0);
 }
