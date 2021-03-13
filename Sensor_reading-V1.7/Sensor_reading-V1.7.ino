@@ -38,9 +38,7 @@ int visualizerFaultLEDState = 0;
 int Sensor_readings[history_length]={0,0,0,0,0,0,0,0,0,0};
 bool new_reading;
 
-//Counter to track how many times the sensor is read.
-int sampleCounter = 0;
-long sampleTimeStamp = 0;
+
 
 
                            
@@ -80,14 +78,14 @@ bool No_Noise_Removal(void *){
 
   //Count number of Samples
   #ifdef Show_Sample_Count
-  if(sampleCounter == MAXSampleCount){
+  if(sampleCounter % MAXSampleCount == 0){
     long currentTime = micros();
     Serial.print("Sample Count: ");
     Serial.println(sampleCounter);
     Serial.print("Time(us): ");
     Serial.println(currentTime-sampleTimeStamp);
     sampleTimeStamp=currentTime;
-    sampleCounter = 0;
+    //sampleCounter = 0;
   }
   #endif
   

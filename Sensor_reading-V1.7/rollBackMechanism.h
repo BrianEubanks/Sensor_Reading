@@ -80,10 +80,15 @@ volatile bool rbFlag = false;
 // Used for checkpoint values.
 int currSensorValue = 0;
 unsigned long currSensorTime = 0;
+long currSample = 0;
 
 
 int negotiateValue;
 int restoreIndex = 0;
+
+//Counter to track how many times the sensor is read.
+long sampleCounter = 0;
+
 
 
 
@@ -172,6 +177,8 @@ struct GPRegBackup regSaves[SAVE_SIZE];
 unsigned long timerBackup[SAVE_SIZE];
 //Store sensor Values
 int sensorBackup[SAVE_SIZE];
+//Store SampleCount Values
+long sampleCountBackup[SAVE_SIZE];
 //Index to access backup slots
 int backupIndex = 0;
 
@@ -203,6 +210,8 @@ void checkpoint() {
   //Backup Timer Value - Used for rollback negotiation
   
   timerBackup[backupIndex] = currSensorTime;
+
+  sampleCountBackup[backupIndex] = sampleCounter;
   
   regSaves[backupIndex].adr00 = *address0;
   regSaves[backupIndex].adr01 = *address1;
@@ -298,8 +307,11 @@ void recovery() {
   //Restore Sensor Value
   currSensorValue = sensorBackup[backupIndex];
   
-  //Restore Timer Value - Timer may just be used for negotiation. Not needed to restore
+  //Restore Timer Value - Used to determine the time loss for recovery
   currSensorTime = timerBackup[backupIndex];
+
+  //Get the sample of the restore point. Used to determine how many samples were lost.
+  currSample = sampleCountBackup[backupIndex];
 
   //Restore GP Regs
   *address0 = regSaves[backupIndex].adr00;
@@ -340,7 +352,17 @@ void recovery() {
   
   //Serial.print("Recovery done at the time:");
   //Serial.println(micros());
-  //sei();    
+  //sei(); 
+
+
+  //Send Rollback Lost Samples
+  Serial.println(sampleCounter - currSample);
+  //Reassign sampleCount
+  //sampleCounter = currSample; //This causes negative sample values.
+  
+
+  //Send Rollback Lost Time
+  Serial.println(micros() - currSensorTime);
   return;
   }    
 
