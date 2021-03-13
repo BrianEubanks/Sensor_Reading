@@ -2,17 +2,26 @@
 // Checkpoint and Rollback Mechanism
 
 
-//Fault Injection Macros
 
-#define INSERT_FAULT
+//Enable Checkpoints
+#define CHKPT
+
+//Fault Injection Macros
+//#define INSERT_FAULT
 
 //#define ZERO_FAULT
 #define ONES_FAULT
 //#define FLIP_FAULT
 
-#define ADDR_FAULT *address2
+#define ADDR_FAULT *address3
 
 #define FLIP_VALUE 0x01
+
+//Sample Counter
+//Shows the Sample Count on the Serial Monitor
+//#define Show_Sample_Count
+#define MAXSampleCount 100
+
 
 
 
@@ -394,7 +403,10 @@ int checkpointAvaliable(long rbValue){
 
   // 1 second margin of error
   // +/- 0.5 seconds.
-  long timestampMargin = 500;
+
+  // .4 second margin
+  // +/-0.2 max seconds
+  long timestampMargin = 200;
   long timestampMax = 0;
   long timestampMin = 0;
   

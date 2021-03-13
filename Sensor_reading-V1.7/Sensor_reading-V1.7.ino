@@ -38,6 +38,10 @@ int visualizerFaultLEDState = 0;
 int Sensor_readings[history_length]={0,0,0,0,0,0,0,0,0,0};
 bool new_reading;
 
+//Counter to track how many times the sensor is read.
+int sampleCounter = 0;
+long sampleTimeStamp = 0;
+
 
                            
 //auto timer = timer_create_default(); // create a timer with default settings
@@ -72,6 +76,21 @@ bool No_Noise_Removal(void *){
   if (verbus)  Serial.println(Raw_Measurement);
   Sensor_log(SensorReading());
   new_reading = true;
+  sampleCounter++;
+
+  //Count number of Samples
+  #ifdef Show_Sample_Count
+  if(sampleCounter == MAXSampleCount){
+    long currentTime = micros();
+    Serial.print("Sample Count: ");
+    Serial.println(sampleCounter);
+    Serial.print("Time(us): ");
+    Serial.println(currentTime-sampleTimeStamp);
+    sampleTimeStamp=currentTime;
+    sampleCounter = 0;
+  }
+  #endif
+  
   return true;
 }
 
@@ -96,6 +115,7 @@ bool Averaging_Noise_Removal(void *){
   if (verbus)  Serial.println(Raw_Measurement);
   Sensor_log(Raw_Measurement);
   //Serial.println(Raw_Measurement);
+  sampleCounter++;
   new_reading = true;
   return true;
 }
@@ -115,6 +135,7 @@ bool Running_Average_Noise_Removal(void *){
   if (verbus) Serial.print("Running_Average_Noise_Removal running average: ");
   if (verbus) Serial.println(Raw_Measurement);
   Sensor_log(Raw_Measurement);
+  sampleCounter++;
   new_reading = true;
   return true;
 }
@@ -136,6 +157,7 @@ bool Exponential_Smothing_Noise_Removal(void *){
   if (verbus) Serial.print("difference: ");
   if (verbus) Serial.println(Raw_Measurement-temp);
   Sensor_log(Raw_Measurement);
+  sampleCounter++;
   //Serial.println(Raw_Measurement);
   new_reading = true;
   return true;
@@ -156,7 +178,7 @@ bool Is_Sensor_Connected(void){ //checks the standard deviation of readings to d
   total = 0;
   for (int i=0; i<history_length; i++)
       total += (long) ((Sensor_readings[i]-average)*(Sensor_readings[i]-average));  
-  total /= history_length;
+  total /= history_length;   
   if (verbus) Serial.print("Is_Sensor_Connected std^2 is: ");
   if (verbus) Serial.println(total);
   long std=sqrt(total);
@@ -223,16 +245,20 @@ void setup() {
   Serial.begin(38400);
 
 
+  #ifdef CHKPT
   //BE
   //Time Driven Checkpoint
   //How to Handle both heckpoint registers, and checkpoint memory variables.???
-  timer.every(1000000, setCheckpoint); // call the rollback function every 1000000 micros (1 second)
+  // call the rollback function every 3000000 micros (3 seconds)
+  timer.every(3000000, setCheckpoint); // call the rollback function every 1000000 micros (1 second)
 
   //Manual Driven Recovery
   //Attach interrupt to DigitalPin 2
   //Call recovery everytime button is pressed
   pinMode(interruptPin,INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(interruptPin), insertFault, FALLING);
+
+  #endif
   
   //Recovery will be changed to be called after negotiating with the Visualizer
   
@@ -241,7 +267,7 @@ void setup() {
 
 /*
  * Replace Serial.printlns with calls to sensorDataWrite()
- * This funciton:
+ *  -Sends sensor data to visualizer
  *  -Only backup if the new value is different than the previous version.
  *  
  */
